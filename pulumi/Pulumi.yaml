@@ -1,7 +1,9 @@
-name: aws-example
+name: cya
 runtime: nodejs
-description: A minimal AWS TypeScript Pulumi program
+description: AWS TypeScript Pulumi IAC scripts
 config:
-  pulumi:tags:
+  tags:
     value:
-      pulumi:template: aws-typescript
+      pulumi: 'true'
+      environment: dev
+      owner: adrian.alonso@volkswagen-groupservices.com

@@ -9,21 +9,21 @@ locals {
 resource "null_resource" "docker_build_and_push" {
   provisioner "local-exec" {
     command = <<EOT
-      # Autenticarse con ECR
-      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${aws_ecr_repository.repo.repository_url}
+      # ECR Authentication
+      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${module.container_repository.repository_url}
       
-      # Construir la imagen Docker
-      docker build --platform linux/amd64 -t ${aws_ecr_repository.repo.repository_url}:latest ./app
+      # Build docker Image
+      docker build --platform linux/amd64 -t ${module.container_repository.repository_url}:latest ./app
       
-      # Etiquetar la imagen
-      docker tag ${aws_ecr_repository.repo.repository_url}:latest ${aws_ecr_repository.repo.repository_url}:latest
+      # Tag image with repository name
+      docker tag ${module.container_repository.repository_url}:latest ${module.container_repository.repository_url}:latest
       
-      # Subir la imagen a ECR
-      docker push ${aws_ecr_repository.repo.repository_url}:latest
+      # Upload image to ECR
+      docker push ${module.container_repository.repository_url}:latest
     EOT
   }
   triggers = {
     dockerfile_hash = local.dockerfile_hash
   }
-  depends_on = [aws_ecr_repository.repo]
+  depends_on = [module.container_repository]
 }

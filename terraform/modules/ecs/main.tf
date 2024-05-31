@@ -1,19 +1,40 @@
 resource "aws_ecs_cluster" "cluster" {
-  name = "cluster"
+  name     = "${var.project_name}-cluster"
+  tags_all = var.tags
 }
 
 
 resource "aws_cloudwatch_log_group" "log_group" {
-  name              = "/ecs/service"
+  name              = var.cloudwatch_group
   retention_in_days = 7
 
 }
+
+
+resource "aws_security_group" "ecs_service" {
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 
 resource "aws_ecs_task_definition" "task_definition" {
   family = "service"
   container_definitions = jsonencode([{
     name      = "awsx-ecs"
-    image     = "${aws_ecr_repository.repo.repository_url}:latest"
+    image     = var.docker_image
     cpu       = var.container_cpu
     memory    = var.container_memory
     essential = true
@@ -23,7 +44,7 @@ resource "aws_ecs_task_definition" "task_definition" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        awslogs-group         = "/ecs/service"
+        awslogs-group         = var.cloudwatch_group
         awslogs-region        = "us-west-2"
         awslogs-stream-prefix = "ecs"
       }
@@ -52,12 +73,12 @@ resource "aws_ecs_service" "service" {
   launch_type     = "FARGATE"
   desired_count   = 1
   network_configuration {
-    subnets          = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
+    subnets          = var.subnets
     security_groups  = [aws_security_group.ecs_service.id]
     assign_public_ip = true
   }
   load_balancer {
-    target_group_arn = aws_lb_target_group.target_group.arn
+    target_group_arn = var.load_balancer_target_group_arn
     container_name   = "awsx-ecs"
     container_port   = 80
   }
